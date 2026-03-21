@@ -14,10 +14,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://conduit.vedpatil.in"),
   title: "Conduit- CI/CD pipelines visualized",
   description: "CI/CD pipelines visualized",
   icons: {
-    icon: "/globe.svg",
+    icon: "/icon.svg",
   },
   openGraph: {
     title: "Conduit- CI/CD pipelines visualized",
@@ -37,6 +38,7 @@ export const metadata: Metadata = {
 
 import { ThemeProvider } from "@/components/theme-provider";
 import GlobalLoader from "@/components/GlobalLoader";
+import { ClientLayout } from "@/components/ClientLayout";
 
 export default function RootLayout({
   children,
@@ -50,7 +52,9 @@ export default function RootLayout({
       >
         <ThemeProvider>
           <GlobalLoader />
-          {children}
+          <ClientLayout>
+            {children}
+          </ClientLayout>
         </ThemeProvider>
       </body>
     </html>

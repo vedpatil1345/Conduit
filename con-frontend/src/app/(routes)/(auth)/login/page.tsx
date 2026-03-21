@@ -1,40 +1,51 @@
 "use client";
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { LoginSchema, type LoginFormValues } from "@/common/validation/auth";
+import { useAuthStore } from "@/store/index";
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
+  const router = useRouter();
+  const login = useAuthStore((s) => s.login);
 
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm<LoginFormValues>({
-    // @ts-expect-error - Zod schema types mismatch due to strict mode or version diffs
     resolver: zodResolver(LoginSchema),
     defaultValues: {
-      email: "",
+      username: "",
       password: "",
+      rememberMe: false,
     },
   });
 
   const onSubmit = async (data: LoginFormValues) => {
     setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      console.log(data);
+    setServerError(null);
+    try {
+      await login({
+        username: data.username,
+        password: data.password,
+        rememberMe: data.rememberMe,
+      });
+      router.push("/dashboard");
+    } catch (err) {
+      setServerError(err instanceof Error ? err.message : "Login failed");
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
-    <div className="relative lg:absolute top-0 left-0 w-full lg:w-1/2 h-full flex flex-col justify-center items-center py-12 px-6 sm:px-12 lg:px-16">
+    <div className="relative lg:absolute top-0 right-0 w-full lg:w-1/2 h-full flex flex-col justify-center items-center py-12 px-6 sm:px-12 lg:px-16">
       <div className="w-full max-w-sm">
         <div className="text-center mb-10">
           <h1 className="text-4xl font-black tracking-tight text-saddle-brown-100 dark:text-khaki-beige-900 mb-2">Sign in</h1>
@@ -44,18 +55,24 @@ export default function LoginPage() {
         </div>
         
         <form onSubmit={handleSubmit(onSubmit)} className="grid gap-6">
+          {serverError && (
+            <div className="text-xs text-destructive font-medium px-3 py-2 rounded-lg bg-destructive/10 border border-destructive/20 text-center">
+              {serverError}
+            </div>
+          )}
+          
           <div className="grid gap-4">
             <div className="grid gap-2">
               <Input
-                id="email"
-                placeholder="Email"
-                type="email"
-                autoComplete="email"
-                {...register("email")}
+                id="username"
+                placeholder="Username"
+                type="text"
+                autoComplete="username"
+                {...register("username")}
                 className="h-14 bg-camel-300/20 backdrop-blur-sm dark:bg-dark-walnut-100/50 border border-camel-700/30 dark:border-white/10 px-5 rounded-xl focus-visible:ring-saddle-brown-500 dark:focus-visible:ring-khaki-beige-600 font-medium text-lg text-foreground dark:text-khaki-beige-800 placeholder:text-saddle-brown-300/60 dark:placeholder:text-khaki-beige-600/50"
               />
-              {errors.email && (
-                <p className="text-xs text-destructive font-medium px-1">{errors.email.message}</p>
+              {errors.username && (
+                <p className="text-xs text-destructive font-medium px-1">{errors.username.message}</p>
               )}
             </div>
             
@@ -72,7 +89,15 @@ export default function LoginPage() {
                 <p className="text-xs text-destructive font-medium px-1 leading-snug">{errors.password.message}</p>
               )}
               
-              <div className="flex justify-center mt-2">
+              <div className="flex justify-between items-center mt-2">
+                <label className="flex items-center gap-2 text-xs font-medium text-saddle-brown-400 dark:text-khaki-beige-700 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    {...register("rememberMe")}
+                    className="rounded border-camel-700/30 dark:border-white/10"
+                  />
+                  Remember me
+                </label>
                 <a href="#" className="text-xs font-bold text-saddle-brown-400 hover:text-saddle-brown-100 dark:text-khaki-beige-700 dark:hover:text-khaki-beige-900 transition-colors border-b border-transparent hover:border-saddle-brown-100 dark:hover:border-khaki-beige-900">
                   Forgot your password?
                 </a>
@@ -86,16 +111,6 @@ export default function LoginPage() {
           >
             {isLoading ? "Signing in..." : "Sign In"}
           </Button>
-
-          {/* Mobile Only: Link to Register */}
-          <div className="mt-8 text-center lg:hidden">
-            <p className="text-sm text-saddle-brown-400 dark:text-khaki-beige-700">
-              Don&apos;t have an account?{" "}
-              <Link href="/register" className="font-bold text-saddle-brown-100 dark:text-khaki-beige-900 hover:underline transition-all">
-                Sign Up
-              </Link>
-            </p>
-          </div>
         </form>
       </div>
     </div>

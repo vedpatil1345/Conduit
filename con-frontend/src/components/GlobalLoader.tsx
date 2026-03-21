@@ -1,18 +1,14 @@
 "use client";
 
-import React, { useEffect } from "react";
-import { useAuthStore } from "@/store";
+import React, { useEffect, useState } from "react";
 
 const GlobalLoader = () => {
-  const isLoading = useAuthStore((state) => state.isLoading);
-  const setIsLoading = useAuthStore((state) => state.setIsLoading);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (isLoading) {
-      // Hide loader as soon as the client-side component has mounted (hydration complete)
-      setIsLoading(false);
-    }
-  }, [isLoading, setIsLoading]);
+    // Hide loader once the client-side component has mounted (hydration complete)
+    setIsLoading(false);
+  }, []);
 
   if (!isLoading) return null;
 
