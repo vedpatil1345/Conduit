@@ -39,6 +39,7 @@ export const metadata: Metadata = {
 import { ThemeProvider } from "@/components/theme-provider";
 import GlobalLoader from "@/components/GlobalLoader";
 import { ClientLayout } from "@/components/ClientLayout";
+import { ReactQueryProvider } from "@/components/providers/ReactQueryProvider";
 
 export default function RootLayout({
   children,
@@ -51,10 +52,12 @@ export default function RootLayout({
         className={`${roboto.className} ${roboto.variable} ${geistMono.variable} antialiased transition-colors duration-300`}
       >
         <ThemeProvider>
-          <GlobalLoader />
-          <ClientLayout>
-            {children}
-          </ClientLayout>
+          <ReactQueryProvider>
+            <GlobalLoader />
+            <ClientLayout>
+              {children}
+            </ClientLayout>
+          </ReactQueryProvider>
         </ThemeProvider>
       </body>
     </html>

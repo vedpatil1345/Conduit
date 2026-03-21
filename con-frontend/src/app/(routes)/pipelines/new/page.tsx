@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import {
   createPipeline,
   STAGE_TYPES,
@@ -64,24 +65,14 @@ export default function NewPipelinePage() {
   const [cronExpression, setCronExpression] = useState("");
 
   // Credentials
-  const [credentials, setCredentials] = useState<CredentialSummary[]>([]);
+  const { data: credentials = [] } = useQuery({
+    queryKey: ["credentials"],
+    queryFn: listCredentials,
+  });
   const [selectedCredentialIds, setSelectedCredentialIds] = useState<string[]>([]);
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const fetchCredentials = useCallback(async () => {
-    try {
-      const data = await listCredentials();
-      setCredentials(data);
-    } catch {
-      // Credentials are optional — ignore errors
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchCredentials();
-  }, [fetchCredentials]);
 
   const addBuildStep = () => {
     setBuildSteps([...buildSteps, { name: "", command: "" }]);
@@ -134,7 +125,7 @@ export default function NewPipelinePage() {
   };
 
   return (
-    <div className="max-w-2xl space-y-6">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
         <button

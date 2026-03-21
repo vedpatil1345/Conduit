@@ -6,5 +6,6 @@ package com.conduit.pipeline;
 public enum PipelineStatus {
     ACTIVE,
     PAUSED,
-    DRAFT
+    DRAFT,
+    RUNNING
 }

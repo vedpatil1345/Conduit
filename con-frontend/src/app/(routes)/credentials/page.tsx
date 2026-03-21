@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   listCredentials,
   createCredential,
   deleteCredential,
-  type CredentialSummary,
   type CredentialType,
   CREDENTIAL_TYPE_LABELS,
   CREDENTIAL_TYPE_COLORS,
@@ -40,8 +40,7 @@ const CREDENTIAL_TYPES: { value: CredentialType; label: string; icon: typeof Key
 ];
 
 export default function CredentialsPage() {
-  const [credentials, setCredentials] = useState<CredentialSummary[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -59,22 +58,11 @@ export default function CredentialsPage() {
   const [newToken, setNewToken] = useState("");
   const [isCreating, setIsCreating] = useState(false);
 
-  const fetchCredentials = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const data = await listCredentials();
-      setCredentials(data);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load credentials");
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchCredentials();
-  }, [fetchCredentials]);
+  const { data: credentials = [], isLoading } = useQuery({
+    queryKey: ["credentials"],
+    queryFn: listCredentials,
+    refetchInterval: 5000,
+  });
 
   const showSuccessMsg = (msg: string) => {
     setSuccessMsg(msg);
@@ -116,7 +104,7 @@ export default function CredentialsPage() {
       });
       resetForm();
       showSuccessMsg("Credential created successfully");
-      fetchCredentials();
+      queryClient.invalidateQueries({ queryKey: ["credentials"] });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create credential");
     } finally {
@@ -129,7 +117,7 @@ export default function CredentialsPage() {
       await deleteCredential(id);
       setDeleteConfirm(null);
       showSuccessMsg("Credential deleted successfully");
-      fetchCredentials();
+      queryClient.invalidateQueries({ queryKey: ["credentials"] });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete credential");
     }

@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getPipeline,
   deletePipeline,
@@ -11,10 +12,18 @@ import {
   TRIGGER_LABELS,
   DEFINITION_LABELS,
   DEFINITION_COLORS,
-  STAGE_TYPES,
   type BuildStep,
   type DefinitionType,
 } from "@/lib/pipelines";
+import {
+  triggerPipeline,
+  listRuns,
+  getRun,
+  cancelRun,
+  type Run,
+  type StageResult,
+  RUN_STATUS_COLORS,
+} from "@/lib/runs";
 import { listCredentials, type CredentialSummary } from "@/lib/credentials";
 import {
   GitMerge,
@@ -27,7 +36,6 @@ import {
   Clock,
   Webhook,
   Play,
-  Pause,
   Settings,
   Layers,
   Calendar,
@@ -38,6 +46,10 @@ import {
   Code2,
   Terminal,
   KeyRound,
+  Square,
+  Loader2,
+  MoreHorizontal,
+  Edit,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,19 +60,49 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import PipelineGraph from "@/components/PipelineGraph";
 
 export default function PipelineDetailPage() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
 
-  const [pipeline, setPipeline] = useState<Pipeline | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
+
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [credentials, setCredentials] = useState<CredentialSummary[]>([]);
+  const [isTriggering, setIsTriggering] = useState(false);
+  const [showActions, setShowActions] = useState(false); // State to control dropdown visibility
+
+  // Queries
+  const { data: pipeline = null, isLoading: isPipelineLoading, error: pipelineError } = useQuery({
+    queryKey: ["pipeline", id],
+    queryFn: () => getPipeline(id),
+  });
+
+  const { data: credentials = [] } = useQuery({
+    queryKey: ["credentials"],
+    queryFn: listCredentials,
+  });
+
+  const { data: recentRuns = [] } = useQuery({
+    queryKey: ["runs", id],
+    queryFn: () => listRuns(id),
+    refetchInterval: 5000,
+  });
+  
+  const isLoading = isPipelineLoading;
+  const initError = pipelineError ? (pipelineError instanceof Error ? pipelineError.message : "Failed to load pipeline") : null;
+  const displayError = error || initError;
 
   // Edit state
   const [editName, setEditName] = useState("");
@@ -75,35 +117,31 @@ export default function PipelineDetailPage() {
   const [editCredentialIds, setEditCredentialIds] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
-  const fetchPipeline = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const data = await getPipeline(id);
-      setPipeline(data);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Pipeline not found");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [id]);
-
-  const fetchCredentials = useCallback(async () => {
-    try {
-      const data = await listCredentials();
-      setCredentials(data);
-    } catch { /* optional */ }
-  }, []);
-
-  useEffect(() => {
-    fetchPipeline();
-    fetchCredentials();
-  }, [fetchPipeline, fetchCredentials]);
+  // Cleaned up old manual fetch functions and pollRef
 
   const showSuccess = (msg: string) => {
     setSuccessMsg(msg);
     setTimeout(() => setSuccessMsg(null), 3000);
   };
+
+  const handleTrigger = async () => {
+    setIsTriggering(true);
+    setError(null);
+    try {
+      const run = await triggerPipeline(id);
+      showSuccess("Pipeline triggered — running now");
+      queryClient.invalidateQueries({ queryKey: ["runs", id] });
+      queryClient.invalidateQueries({ queryKey: ["pipeline", id] });
+      // Go to new run page
+      router.push(`/pipelines/${id}/runs/${run.id}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to trigger pipeline");
+    } finally {
+      setIsTriggering(false);
+    }
+  };
+
+  // handleCancel previously here was moved to the Run page
 
   const handleDelete = async () => {
     try {
@@ -114,17 +152,7 @@ export default function PipelineDetailPage() {
     }
   };
 
-  const handleToggleStatus = async () => {
-    if (!pipeline) return;
-    const newStatus = pipeline.status === "ACTIVE" ? "PAUSED" : "ACTIVE";
-    try {
-      await updatePipeline(id, { status: newStatus });
-      showSuccess(`Pipeline ${newStatus === "ACTIVE" ? "activated" : "paused"}`);
-      fetchPipeline();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update status");
-    }
-  };
+
 
   const startEditing = () => {
     if (!pipeline) return;
@@ -160,7 +188,7 @@ export default function PipelineDetailPage() {
       });
       setIsEditing(false);
       showSuccess("Pipeline updated successfully");
-      fetchPipeline();
+      queryClient.invalidateQueries({ queryKey: ["pipeline", id] });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update pipeline");
     } finally {
@@ -195,6 +223,15 @@ export default function PipelineDetailPage() {
     if (!dateStr) return "—";
     const d = new Date(dateStr);
     return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  };
+
+  const formatDuration = (ms: number) => {
+    if (!ms) return "—";
+    const seconds = Math.floor(ms / 1000);
+    if (seconds < 60) return `${seconds}s`;
+    const minutes = Math.floor(seconds / 60);
+    const remaining = seconds % 60;
+    return `${minutes}m ${remaining}s`;
   };
 
   if (isLoading) return <div className="flex items-center justify-center h-40 text-muted-foreground">Loading...</div>;
@@ -235,10 +272,16 @@ export default function PipelineDetailPage() {
         <div className="flex items-center gap-2 ml-11 sm:ml-0">
           {!isEditing ? (
             <>
-              <Button variant="outline" size="sm" className="gap-1.5" onClick={startEditing}><Edit3 className="h-3.5 w-3.5" /> Edit</Button>
-              <Button variant="outline" size="sm" className="gap-1.5" onClick={handleToggleStatus}>
-                {pipeline.status === "ACTIVE" ? <><Pause className="h-3.5 w-3.5" /> Pause</> : <><Play className="h-3.5 w-3.5" /> Activate</>}
+              <Button
+                size="sm"
+                className="gap-1.5"
+                onClick={handleTrigger}
+                disabled={isTriggering || pipeline.status !== "ACTIVE"}
+              >
+                {isTriggering ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
+                {isTriggering ? "Starting..." : "Run Pipeline"}
               </Button>
+              <Button variant="outline" size="sm" className="gap-1.5" onClick={startEditing}><Edit3 className="h-3.5 w-3.5" /> Edit</Button>
               {deleteConfirm ? (
                 <div className="inline-flex items-center gap-2">
                   <span className="text-xs text-destructive">Delete?</span>
@@ -266,16 +309,16 @@ export default function PipelineDetailPage() {
           <Check className="h-4 w-4" /> {successMsg}
         </div>
       )}
-      {error && (
-        <div className="flex items-center gap-2 text-sm font-medium text-destructive px-4 py-2.5 rounded-lg bg-destructive/10 border border-destructive/20">
-          <AlertTriangle className="h-4 w-4" /> {error}
+      {displayError && (
+        <div className="flex items-center gap-2 text-sm font-medium text-destructive px-4 py-2.5 rounded-lg bg-destructive/10 border border-destructive/20 animate-in fade-in slide-in-from-top-2">
+          <AlertTriangle className="h-4 w-4" /> {displayError}
           <button onClick={() => setError(null)} className="ml-auto"><X className="h-3 w-3" /></button>
         </div>
       )}
 
       {!isEditing ? (
         /* --- VIEW MODE --- */
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left: Config */}
           <div className="space-y-6">
             <div className="border rounded-xl p-5 bg-card space-y-3">
@@ -321,7 +364,7 @@ export default function PipelineDetailPage() {
             )}
           </div>
 
-          {/* Right: Definition content */}
+          {/* Right: Definition + Recent Runs */}
           <div className="lg:col-span-2 space-y-6">
             {pipeline.definitionType === "CONDUIT_FILE" && (
               <div className="border rounded-xl p-5 bg-card space-y-3">
@@ -384,6 +427,72 @@ export default function PipelineDetailPage() {
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Recent Runs as Primary Table */}
+            {recentRuns.length > 0 && (
+              <div className="border rounded-xl bg-card overflow-hidden">
+                <div className="px-5 py-4 border-b bg-muted/20 flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-foreground flex items-center gap-2 uppercase tracking-wider">
+                    <Clock className="h-4 w-4" /> Pipeline Executions
+                  </h3>
+                </div>
+                <table className="w-full text-sm text-left">
+                  <thead className="text-xs uppercase bg-muted/50 text-muted-foreground border-b">
+                    <tr>
+                      <th className="px-5 py-3 font-semibold">Run ID</th>
+                      <th className="px-5 py-3 font-semibold">Status</th>
+                      <th className="px-5 py-3 font-semibold">Date</th>
+                      <th className="px-5 py-3 font-semibold">Duration</th>
+                      <th className="px-5 py-3 font-semibold">Details</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recentRuns.map((run) => {
+                      let progressPct = 0;
+                      if (run.status === "RUNNING") {
+                        const total = Math.max(pipeline.stages?.length || 0, pipeline.buildSteps?.length || 0, run.stageResults?.length || 1);
+                        const completed = run.stageResults?.filter((r) => r.status === "PASSED" || r.status === "FAILED").length || 0;
+                        const hasRunning = run.stageResults?.some((r) => r.status === "RUNNING");
+                        const current = hasRunning ? 0.5 : 0; // The active stage is halfway done visually
+                        progressPct = Math.min(Math.round(((completed + current) / total) * 100), 96);
+                      }
+
+                      return (
+                        <tr 
+                          key={run.id} 
+                          className="border-b last:border-0 hover:bg-muted/10 cursor-pointer transition-colors"
+                          onClick={() => router.push(`/pipelines/${id}/runs/${run.id}`)}
+                        >
+                          <td className="px-5 py-3 font-mono text-xs">#{run.id.substring(0, 8)}</td>
+                          <td className="px-5 py-3">
+                            {run.status === "RUNNING" ? (
+                              <div className="flex items-center gap-2 max-w-[120px]">
+                                <div className="flex-1 h-1.5 bg-cyan-100 dark:bg-cyan-900/30 rounded-full overflow-hidden">
+                                  <div 
+                                    className="h-full bg-cyan-500 transition-all duration-500 ease-out rounded-full" 
+                                    style={{ width: `${progressPct}%` }}
+                                  />
+                                </div>
+                                <span className="text-[10px] font-bold text-cyan-600 dark:text-cyan-400 uppercase tracking-wider tabular-nums">
+                                  {progressPct}%
+                                </span>
+                              </div>
+                            ) : (
+                              <span className={`inline-flex items-center text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ${RUN_STATUS_COLORS[run.status] || ""}`}>
+                                {run.status}
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-5 py-3 text-muted-foreground text-xs">{formatDate(run.startedAt)}</td>
+                          <td className="px-5 py-3 text-muted-foreground text-xs">{run.durationMs > 0 ? formatDuration(run.durationMs) : "—"}</td>
+                          <td className="px-5 py-3 text-primary font-medium text-xs hover:underline">View Run &rarr;</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>

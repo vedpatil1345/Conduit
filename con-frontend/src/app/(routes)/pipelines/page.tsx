@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   listPipelines,
   deletePipeline,
@@ -12,6 +13,7 @@ import {
   DEFINITION_LABELS,
   DEFINITION_COLORS,
 } from "@/lib/pipelines";
+import { triggerPipeline } from "@/lib/runs";
 import {
   GitMerge,
   Plus,
@@ -24,7 +26,6 @@ import {
   Webhook,
   Play,
   MoreHorizontal,
-  Pause,
   Circle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -38,32 +39,31 @@ import {
 
 export default function PipelinesPage() {
   const router = useRouter();
-  const [pipelines, setPipelines] = useState<Pipeline[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  const fetchPipelines = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const data = await listPipelines();
-      setPipelines(data);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load pipelines");
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const { data: pipelines = [], isLoading, error: queryError } = useQuery({
+    queryKey: ["pipelines"],
+    queryFn: listPipelines,
+    refetchInterval: 2000, // Background polling every 2s
+  });
 
-  useEffect(() => {
-    fetchPipelines();
-  }, [fetchPipelines]);
+  const displayError = error || (queryError instanceof Error ? queryError.message : queryError ? "Failed to load pipelines" : null);
 
   const showSuccess = (msg: string) => {
     setSuccessMsg(msg);
     setTimeout(() => setSuccessMsg(null), 3000);
+  };
+
+  const handleTrigger = async (pipelineId: string) => {
+    try {
+      await triggerPipeline(pipelineId);
+      showSuccess("Pipeline triggered — view details to track progress");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to trigger pipeline");
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -71,22 +71,13 @@ export default function PipelinesPage() {
       await deletePipeline(id);
       setDeleteConfirm(null);
       showSuccess("Pipeline deleted successfully");
-      fetchPipelines();
+      queryClient.invalidateQueries({ queryKey: ["pipelines"] });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete pipeline");
     }
   };
 
-  const handleToggleStatus = async (pipeline: Pipeline) => {
-    const newStatus = pipeline.status === "ACTIVE" ? "PAUSED" : "ACTIVE";
-    try {
-      await updatePipeline(pipeline.id, { status: newStatus });
-      showSuccess(`Pipeline ${newStatus === "ACTIVE" ? "activated" : "paused"}`);
-      fetchPipelines();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update status");
-    }
-  };
+
 
   const triggerIcon = (trigger: string) => {
     switch (trigger) {
@@ -127,10 +118,10 @@ export default function PipelinesPage() {
           <Check className="h-4 w-4" /> {successMsg}
         </div>
       )}
-      {error && (
-        <div className="flex items-center gap-2 text-sm font-medium text-destructive px-4 py-2.5 rounded-lg bg-destructive/10 border border-destructive/20">
-          <AlertTriangle className="h-4 w-4" /> {error}
-          <button onClick={() => setError(null)} className="ml-auto"><X className="h-3 w-3" /></button>
+      {displayError && (
+        <div className="flex items-center gap-2 text-sm font-medium text-destructive px-4 py-3 rounded-lg bg-destructive/10 border border-destructive/20 animate-in fade-in slide-in-from-top-2">
+          <AlertTriangle className="h-4 w-4" /> {displayError}
+          <button onClick={() => setError(null)} className="ml-auto"><X className="h-3.5 w-3.5" /></button>
         </div>
       )}
 
@@ -243,12 +234,11 @@ export default function PipelinesPage() {
                           <DropdownMenuItem onClick={() => router.push(`/pipelines/${pipeline.id}`)}>
                             <Circle className="h-3.5 w-3.5 mr-2" /> View Details
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleToggleStatus(pipeline)}>
-                            {pipeline.status === "ACTIVE" ? (
-                              <><Pause className="h-3.5 w-3.5 mr-2" /> Pause</>
-                            ) : (
-                              <><Play className="h-3.5 w-3.5 mr-2" /> Activate</>
-                            )}
+                          <DropdownMenuItem
+                            onClick={() => handleTrigger(pipeline.id)}
+                            disabled={pipeline.status !== "ACTIVE"}
+                          >
+                            <Play className="h-3.5 w-3.5 mr-2" /> Run Pipeline
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteConfirm(pipeline.id)}>

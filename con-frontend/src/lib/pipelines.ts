@@ -66,6 +66,7 @@ export const STATUS_COLORS: Record<string, string> = {
   ACTIVE: "bg-green-100/50 text-green-800 border-green-300 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800",
   PAUSED: "bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800",
   DRAFT: "bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600",
+  RUNNING: "bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-900/30 dark:text-cyan-400 dark:border-cyan-800",
 };
 
 export const TRIGGER_LABELS: Record<string, string> = {
