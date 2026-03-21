@@ -1,4 +1,4 @@
-import { Blocks, GitMerge, LayoutDashboard, PlayCircle, Settings, Users } from "lucide-react";
+import { Blocks, GitMerge, KeyRound, LayoutDashboard, PlayCircle, Settings, Users } from "lucide-react";
 
 export const pageRoutes = {
     "Dashboard": "/dashboard",
@@ -7,6 +7,7 @@ export const pageRoutes = {
     "Integrations": "/integrations",
     "Team": "/team",
     "Settings": "/settings",
+    "Credentials": "/credentials",
     "Login": "/login",
 }
 
@@ -19,5 +20,6 @@ export const MAIN_LINKS = [
 
 export const WORKSPACE_LINKS = [
   { name: "Team", href: pageRoutes["Team"] || "/team", icon: Users },
+  { name: "Credentials", href: pageRoutes["Credentials"] || "/credentials", icon: KeyRound },
   { name: "Settings", href: pageRoutes["Settings"] || "/settings", icon: Settings },
 ];

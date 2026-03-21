@@ -68,12 +68,6 @@ export function Topbar() {
         <h1 className="text-lg font-medium text-foreground capitalize truncate select-none">{pageName}</h1>
       </div>
       <div className="flex items-center gap-2 md:gap-4">
-        <button className="hidden sm:block h-9 px-4 py-2 text-sm border rounded-md bg-background text-foreground hover:bg-accent hover:text-accent-foreground font-medium transition-colors">
-          Last 7 days
-        </button>
-        <button className="hidden sm:block h-9 px-4 py-2 text-sm border border-primary bg-primary text-primary-foreground hover:bg-primary/90 rounded-md font-medium transition-colors">
-          + New pipeline
-        </button>
         <ThemeToggle />
 
         {/* User Profile Dropdown */}

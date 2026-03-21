@@ -12,6 +12,7 @@ interface AuthState {
   logout: () => Promise<void>;
   tryRestore: () => Promise<void>;
   clearError: () => void;
+  setIsLoading: (loading: boolean) => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -74,4 +75,5 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   clearError: () => set({ error: null }),
+  setIsLoading: (loading: boolean) => set({ isLoading: loading }),
 }));
