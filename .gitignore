@@ -1,0 +1,6 @@
+.vscodenode_modules/\n.next/\nout/\nbuild/
+con-frontend/node_modules/
+con-frontend/.next/
+con-frontend/out/
+con-frontend/build/
+con-bakcend/target/

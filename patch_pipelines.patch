@@ -1,0 +1,19 @@
+<<<<<<< SEARCH
+export async function deletePipeline(id: string): Promise<{ message: string }> {
+  return apiFetch<{ message: string }>(`/api/pipelines/${id}`, {
+    method: "DELETE",
+  });
+}
+=======
+export async function deletePipeline(id: string): Promise<{ message: string }> {
+  return apiFetch<{ message: string }>(`/api/pipelines/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export async function triggerPipeline(id: string): Promise<{ message: string; pipelineId: string }> {
+  return apiFetch<{ message: string; pipelineId: string }>(`/api/pipelines/${id}/trigger`, {
+    method: "POST",
+  });
+}
+>>>>>>> REPLACE

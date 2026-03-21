@@ -1,0 +1,22 @@
+<<<<<<< SEARCH
+    // --- Helpers ---
+
+    private boolean hasRole(Authentication auth, String... roles) {
+=======
+    /**
+     * POST /api/pipelines/{id}/trigger — manual trigger.
+     */
+    @PostMapping("/{id}/trigger")
+    public ResponseEntity<?> trigger(@PathVariable String id, Authentication auth) {
+        return pipelineService.findById(id)
+                .map(pipeline -> {
+                    // Logic for run will be implemented in Step 4. For now, returning stub success.
+                    return ResponseEntity.ok(Map.of("message", "Pipeline triggered successfully (Stub)", "pipelineId", id));
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    // --- Helpers ---
+
+    private boolean hasRole(Authentication auth, String... roles) {
+>>>>>>> REPLACE

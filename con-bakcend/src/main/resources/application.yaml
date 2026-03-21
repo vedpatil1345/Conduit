@@ -1,0 +1,11 @@
+spring:
+  application:
+    name: conduit
+
+server:
+  port: ${conduit.port:8080}
+
+conduit:
+  mode: local
+  data-dir: "${user.home}/.conduit"
+  port: 8080
