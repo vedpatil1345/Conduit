@@ -9,3 +9,7 @@ conduit:
   mode: local
   data-dir: "${user.home}/.conduit"
   port: 8080
+  api:
+    encryption:
+      enabled: true # TODO: Enable encryption in production
+      secret-key: "conduit-secure-secret-key-123456" # TODO: Change this key in production

@@ -1,3 +1,6 @@
+import { API_ENCRYPTION_ENABLED } from "@/common/constants/app-constants";
+import { encryptPayload, decryptPayload } from "./encryption";
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
 interface RequestOptions extends Omit<RequestInit, "body"> {
@@ -8,6 +11,7 @@ interface RequestOptions extends Omit<RequestInit, "body"> {
  * Fetch wrapper for backend API calls.
  * - Auto-sets Content-Type and Authorization header
  * - Handles token refresh on 401
+ * - Transparently encrypts bodies and decrypts responses if enabled
  * - Throws with error message from backend
  */
 export async function apiFetch<T>(
@@ -21,43 +25,52 @@ export async function apiFetch<T>(
     ...((customHeaders as Record<string, string>) || {}),
   };
 
-  // Attach access token if available
   const token = getAccessToken();
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
   }
 
+  // Pre-process body for encryption
+  const outBody = body
+    ? (API_ENCRYPTION_ENABLED ? JSON.stringify({ data: encryptPayload(body) }) : JSON.stringify(body))
+    : undefined;
+
   const response = await fetch(`${API_BASE}${path}`, {
     ...rest,
     headers,
-    body: body ? JSON.stringify(body) : undefined,
-    credentials: "include", // for HttpOnly refresh cookie
+    body: outBody,
+    credentials: "include",
   });
 
   // Handle 401 — try refresh
   if (response.status === 401 && !path.includes("/auth/")) {
     const refreshed = await tryRefreshToken();
     if (refreshed) {
-      // Retry original request with new token
       const newToken = getAccessToken();
-      if (newToken) {
-        headers["Authorization"] = `Bearer ${newToken}`;
-      }
+      if (newToken) headers["Authorization"] = `Bearer ${newToken}`;
+      
       const retryResponse = await fetch(`${API_BASE}${path}`, {
         ...rest,
         headers,
-        body: body ? JSON.stringify(body) : undefined,
+        body: outBody,
         credentials: "include",
       });
 
       if (!retryResponse.ok) {
-        const error = await retryResponse.json().catch(() => ({}));
-        throw new Error(error.error || `Request failed: ${retryResponse.status}`);
+        let errorObj = await retryResponse.json().catch(() => ({}));
+        if (API_ENCRYPTION_ENABLED && errorObj.data && typeof errorObj.data === "string") {
+          try { errorObj = decryptPayload(errorObj.data) as any; } catch(e) {}
+        }
+        throw new Error(errorObj.error || `Request failed: ${retryResponse.status}`);
       }
-      return retryResponse.json();
+      
+      let retryResult = await retryResponse.json();
+      if (API_ENCRYPTION_ENABLED && retryResult.data && typeof retryResult.data === "string") {
+        try { retryResult = decryptPayload(retryResult.data); } catch(e) {}
+      }
+      return retryResult;
     }
 
-    // Refresh failed — redirect to login
     clearAccessToken();
     if (typeof window !== "undefined") {
       window.location.href = "/login";
@@ -66,11 +79,22 @@ export async function apiFetch<T>(
   }
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.error || `Request failed: ${response.status}`);
+    let errorObj = await response.json().catch(() => ({}));
+    if (API_ENCRYPTION_ENABLED && errorObj.data && typeof errorObj.data === "string") {
+      try { errorObj = decryptPayload(errorObj.data) as any; } catch(e) {}
+    }
+    throw new Error(errorObj.error || `Request failed: ${response.status}`);
   }
 
-  return response.json();
+  let result = await response.json();
+  if (API_ENCRYPTION_ENABLED && result.data && typeof result.data === "string") {
+    try {
+      result = decryptPayload(result.data);
+    } catch(e) {
+      console.error("Failed to decrypt frontend payload.", e);
+    }
+  }
+  return result;
 }
 
 // --- Token storage (in memory + sessionStorage for tab persistence) ---
@@ -107,7 +131,13 @@ async function tryRefreshToken(): Promise<boolean> {
     });
     if (!response.ok) return false;
 
-    const data = await response.json();
+    // Refresh token result doesn't follow strict data wrapper since it sets a cookie usually
+    // but the payload might be wrapped.
+    let data = await response.json();
+    if (API_ENCRYPTION_ENABLED && data.data && typeof data.data === "string") {
+      try { data = decryptPayload(data.data); } catch(e) {}
+    }
+    
     setAccessToken(data.accessToken);
     return true;
   } catch {
