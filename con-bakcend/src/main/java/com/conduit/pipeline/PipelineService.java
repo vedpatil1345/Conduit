@@ -68,6 +68,9 @@ public class PipelineService {
                 createdBy
         );
 
+        // New pipelines should be runnable by default unless caller requests another state.
+        pipeline.setStatus(input.getStatus() != null ? input.getStatus() : PipelineStatus.ACTIVE);
+
         // Copy definition-type-specific fields
         pipeline.setConduitFilePath(
                 input.getConduitFilePath() != null ? input.getConduitFilePath() : "ConduitFile"
