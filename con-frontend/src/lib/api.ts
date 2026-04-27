@@ -1,8 +1,6 @@
 import { API_ENCRYPTION_ENABLED } from "@/common/constants/app-constants";
 import { encryptPayload, decryptPayload } from "./encryption";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-
 interface RequestOptions extends Omit<RequestInit, "body"> {
   body?: unknown;
 }
@@ -35,12 +33,21 @@ export async function apiFetch<T>(
     ? (API_ENCRYPTION_ENABLED ? JSON.stringify({ data: encryptPayload(body) }) : JSON.stringify(body))
     : undefined;
 
-  const response = await fetch(`${API_BASE}${path}`, {
-    ...rest,
-    headers,
-    body: outBody,
-    credentials: "include",
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${path}`, {
+      ...rest,
+      headers,
+      body: outBody,
+      credentials: "include",
+    });
+  } catch {
+    clearAccessToken();
+    if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+      window.location.href = "/login";
+    }
+    throw new Error("Backend not connected");
+  }
 
   // Handle 401 — try refresh
   if (response.status === 401 && !path.includes("/auth/")) {
@@ -49,7 +56,7 @@ export async function apiFetch<T>(
       const newToken = getAccessToken();
       if (newToken) headers["Authorization"] = `Bearer ${newToken}`;
       
-      const retryResponse = await fetch(`${API_BASE}${path}`, {
+      const retryResponse = await fetch(`${path}`, {
         ...rest,
         headers,
         body: outBody,
@@ -59,14 +66,14 @@ export async function apiFetch<T>(
       if (!retryResponse.ok) {
         let errorObj = await retryResponse.json().catch(() => ({}));
         if (API_ENCRYPTION_ENABLED && errorObj.data && typeof errorObj.data === "string") {
-          try { errorObj = decryptPayload(errorObj.data) as any; } catch(e) {}
+          try { errorObj = decryptPayload(errorObj.data); } catch {}
         }
         throw new Error(errorObj.error || `Request failed: ${retryResponse.status}`);
       }
       
       let retryResult = await retryResponse.json();
       if (API_ENCRYPTION_ENABLED && retryResult.data && typeof retryResult.data === "string") {
-        try { retryResult = decryptPayload(retryResult.data); } catch(e) {}
+        try { retryResult = decryptPayload(retryResult.data); } catch {}
       }
       return retryResult;
     }
@@ -81,7 +88,7 @@ export async function apiFetch<T>(
   if (!response.ok) {
     let errorObj = await response.json().catch(() => ({}));
     if (API_ENCRYPTION_ENABLED && errorObj.data && typeof errorObj.data === "string") {
-      try { errorObj = decryptPayload(errorObj.data) as any; } catch(e) {}
+      try { errorObj = decryptPayload(errorObj.data); } catch {}
     }
     throw new Error(errorObj.error || `Request failed: ${response.status}`);
   }
@@ -125,7 +132,7 @@ export function clearAccessToken() {
 
 async function tryRefreshToken(): Promise<boolean> {
   try {
-    const response = await fetch(`${API_BASE}/api/auth/refresh`, {
+    const response = await fetch(`/api/auth/refresh`, {
       method: "POST",
       credentials: "include",
     });
@@ -135,7 +142,7 @@ async function tryRefreshToken(): Promise<boolean> {
     // but the payload might be wrapped.
     let data = await response.json();
     if (API_ENCRYPTION_ENABLED && data.data && typeof data.data === "string") {
-      try { data = decryptPayload(data.data); } catch(e) {}
+      try { data = decryptPayload(data.data); } catch {}
     }
     
     setAccessToken(data.accessToken);

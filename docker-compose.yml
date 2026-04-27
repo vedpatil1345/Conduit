@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  conduit-backend:
+    image: registry.vedpatil.in/conduit-backend:latest
+    build:
+      context: ./con-bakcend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+    networks:
+      - conduit-net
+
+  conduit-frontend:
+    image: registry.vedpatil.in/conduit-frontend:latest
+    build:
+      context: ./con-frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      # Tell the frontend to proxy API requests to the backend container
+      - NEXT_PUBLIC_API_URL=http://conduit-backend:8080
+    depends_on:
+      - conduit-backend
+    networks:
+      - conduit-net
+
+networks:
+  conduit-net:
+    driver: bridge

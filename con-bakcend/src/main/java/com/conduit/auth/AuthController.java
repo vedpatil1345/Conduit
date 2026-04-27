@@ -28,7 +28,8 @@ public class AuthController {
 
     /**
      * POST /api/auth/login
-     * Authenticate with username + password. Returns access token in body, refresh token in HttpOnly cookie.
+     * Authenticate with username + password. Returns access token in body, refresh
+     * token in HttpOnly cookie.
      */
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody AuthRequest request, HttpServletResponse response) {
@@ -41,8 +42,7 @@ public class AuthController {
             AuthResponse body = new AuthResponse(
                     result.getAccessToken(),
                     jwtService.getAccessTokenExpiresIn(),
-                    AuthResponse.sanitizeUser(result.getUser())
-            );
+                    AuthResponse.sanitizeUser(result.getUser()));
 
             return ResponseEntity.ok(body);
         } catch (AuthService.AuthException e) {
@@ -67,8 +67,7 @@ public class AuthController {
             AuthResponse body = new AuthResponse(
                     result.getAccessToken(),
                     jwtService.getAccessTokenExpiresIn(),
-                    AuthResponse.sanitizeUser(result.getUser())
-            );
+                    AuthResponse.sanitizeUser(result.getUser()));
 
             return ResponseEntity.ok(body);
         } catch (AuthService.AuthException e) {
@@ -100,7 +99,7 @@ public class AuthController {
 
         Cookie cookie = new Cookie(REFRESH_TOKEN_COOKIE, token);
         cookie.setHttpOnly(true);
-        cookie.setSecure(false); // TODO: set to true in production
+        cookie.setSecure(false); // TODO: set to false in dev
         cookie.setPath("/api/auth");
         cookie.setMaxAge((int) maxAge.toSeconds());
         response.addCookie(cookie);
@@ -109,7 +108,7 @@ public class AuthController {
     private void clearRefreshCookie(HttpServletResponse response) {
         Cookie cookie = new Cookie(REFRESH_TOKEN_COOKIE, "");
         cookie.setHttpOnly(true);
-        cookie.setSecure(false);
+        cookie.setSecure(false); // TODO: set to false in dev
         cookie.setPath("/api/auth");
         cookie.setMaxAge(0);
         response.addCookie(cookie);
@@ -117,7 +116,8 @@ public class AuthController {
 
     private String extractRefreshCookie(HttpServletRequest request) {
         Cookie[] cookies = request.getCookies();
-        if (cookies == null) return null;
+        if (cookies == null)
+            return null;
 
         for (Cookie cookie : cookies) {
             if (REFRESH_TOKEN_COOKIE.equals(cookie.getName())) {

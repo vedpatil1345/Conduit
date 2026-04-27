@@ -3,7 +3,7 @@ import { MoveLeft, Search, AlertCircle } from "lucide-react";
 
 export default function NotFound() {
   return (
-    <div className="flex grow max-h-dvh mt-16 items-center justify-center bg-background px-4 sm:px-6 lg:px-8 w-full relative select-none">
+    <div className="flex grow mt-16 items-center justify-center px-4 sm:px-6 lg:px-8 w-full relative select-none">
       <div className="text-center space-y-8">
         <div className="relative group">
           <h1 className="text-6xl xl:text-9xl scale-150 font-extrabold tracking-tighter text-foreground/20 drop-shadow-sm transition-transform duration-700 ease-in-out group-hover:scale-125">

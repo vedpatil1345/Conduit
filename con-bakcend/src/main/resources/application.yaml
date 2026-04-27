@@ -13,3 +13,8 @@ conduit:
     encryption:
       enabled: true # TODO: Enable encryption in production
       secret-key: "conduit-secure-secret-key-123456" # TODO: Change this key in production
+
+logging:
+  level:
+    root: INFO
+    com.conduit: INFO
