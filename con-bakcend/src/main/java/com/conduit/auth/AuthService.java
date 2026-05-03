@@ -157,7 +157,7 @@ public class AuthService {
             User admin = new User("admin", "admin@localhost", hashedPassword, Role.ADMIN);
             users.add(admin);
             storageService.write(USERS_PATH, users);
-            log.info("Created default admin user (username: admin, password: admin)");
+            log.info("Created default admin user");
         }
     }
 

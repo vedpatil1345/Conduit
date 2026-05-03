@@ -93,6 +93,19 @@ public class DataDirectoryInitializer implements ApplicationRunner {
         Files.writeString(configFile, yaml, StandardCharsets.UTF_8,
                 StandardOpenOption.CREATE_NEW);
 
+        // Set secure file permissions (owner-only read/write)
+        try {
+            java.util.Set<java.nio.file.attribute.PosixFilePermission> perms = java.util.EnumSet.of(
+                    java.nio.file.attribute.PosixFilePermission.OWNER_READ,
+                    java.nio.file.attribute.PosixFilePermission.OWNER_WRITE
+            );
+            Files.setPosixFilePermissions(configFile, perms);
+        } catch (UnsupportedOperationException e) {
+            // Fallback for non-POSIX systems (like Windows)
+            configFile.toFile().setReadable(true, true);
+            configFile.toFile().setWritable(true, true);
+        }
+
         // Set on properties so they're available immediately
         properties.setSecretKey(secretKey);
         properties.setJwtPrivateKey(jwtKeys.get("privateKey"));

@@ -96,22 +96,28 @@ public class AuthController {
 
     private void setRefreshCookie(HttpServletResponse response, String token, boolean rememberMe) {
         Duration maxAge = jwtService.getRefreshTokenDuration(rememberMe);
-
-        Cookie cookie = new Cookie(REFRESH_TOKEN_COOKIE, token);
-        cookie.setHttpOnly(true);
-        cookie.setSecure(false); // TODO: set to false in dev
-        cookie.setPath("/api/auth");
-        cookie.setMaxAge((int) maxAge.toSeconds());
-        response.addCookie(cookie);
+        
+        org.springframework.http.ResponseCookie cookie = org.springframework.http.ResponseCookie.from(REFRESH_TOKEN_COOKIE, token)
+                .httpOnly(true)
+                .secure(true) 
+                .path("/api/auth")
+                .maxAge(maxAge)
+                .sameSite("Strict")
+                .build();
+        
+        response.addHeader(org.springframework.http.HttpHeaders.SET_COOKIE, cookie.toString());
     }
 
     private void clearRefreshCookie(HttpServletResponse response) {
-        Cookie cookie = new Cookie(REFRESH_TOKEN_COOKIE, "");
-        cookie.setHttpOnly(true);
-        cookie.setSecure(false); // TODO: set to false in dev
-        cookie.setPath("/api/auth");
-        cookie.setMaxAge(0);
-        response.addCookie(cookie);
+        org.springframework.http.ResponseCookie cookie = org.springframework.http.ResponseCookie.from(REFRESH_TOKEN_COOKIE, "")
+                .httpOnly(true)
+                .secure(true)
+                .path("/api/auth")
+                .maxAge(0)
+                .sameSite("Strict")
+                .build();
+        
+        response.addHeader(org.springframework.http.HttpHeaders.SET_COOKIE, cookie.toString());
     }
 
     private String extractRefreshCookie(HttpServletRequest request) {
