@@ -40,10 +40,14 @@ public class PipelineController {
     }
 
     /**
-     * POST /api/pipelines — create a new pipeline.
+     * POST /api/pipelines — create a new pipeline (admin/manager only).
      */
     @PostMapping
     public ResponseEntity<?> create(@RequestBody Pipeline body, Authentication auth) {
+        if (!hasRole(auth, "ADMIN", "MANAGER")) {
+            return ResponseEntity.status(403).body(Map.of("error", "Only admins and managers can create pipelines"));
+        }
+
         String userId = (String) auth.getPrincipal();
 
         try {
@@ -55,10 +59,14 @@ public class PipelineController {
     }
 
     /**
-     * PUT /api/pipelines/{id} — update a pipeline.
+     * PUT /api/pipelines/{id} — update a pipeline (admin/manager only).
      */
     @PutMapping("/{id}")
-    public ResponseEntity<?> update(@PathVariable String id, @RequestBody Pipeline body) {
+    public ResponseEntity<?> update(@PathVariable String id, @RequestBody Pipeline body, Authentication auth) {
+        if (!hasRole(auth, "ADMIN", "MANAGER")) {
+            return ResponseEntity.status(403).body(Map.of("error", "Only admins and managers can update pipelines"));
+        }
+
         try {
             Pipeline updated = pipelineService.update(id, body);
             return ResponseEntity.ok(updated);

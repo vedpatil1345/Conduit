@@ -2,6 +2,40 @@
 
 A self-hosted CI/CD pipeline visualizer and dashboard.
 
+## Installation
+
+### Linux (One-Liner)
+
+The easiest way to install Conduit on Linux is via our automated script. This will clone the repository, check for dependencies, prompt you for ports, and build everything for you. **After installation, the source code is automatically removed to keep your system clean.**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/vedpatil1345/Conduit/V1/install.sh | bash
+```
+
+### Manual Installation (Linux)
+
+If you have already cloned the repository, you can run the installer locally:
+
+```bash
+chmod +x install.sh
+./install.sh
+```
+
+**Features of the Installer:**
+- **Custom Ports:** Choose your preferred backend and frontend ports.
+- **Auto-Cleanup:** Moves artifacts to a `dist/` folder and deletes source directories to save space.
+- **Startup Support:** Optionally adds Conduit to your system's startup apps via a `systemd` user service.
+
+Once installed, you can start the application manually using:
+```bash
+./start.sh
+```
+
+**Prerequisites:**
+- Java 17 or higher
+- Node.js 20 or higher
+- `pnpm` (will be installed automatically if missing)
+
 ## Getting Started
 
 When you start the Conduit backend for the very first time, it automatically initializes your data directory (`~/.conduit/`) and creates a default administrator account.

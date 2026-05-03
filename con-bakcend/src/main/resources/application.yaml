@@ -11,8 +11,9 @@ conduit:
   port: 8080
   api:
     encryption:
-      enabled: true # TODO: Enable encryption in production
-      secret-key: "conduit-secure-secret-key-123456" # TODO: Change this key in production
+      enabled: true
+      # Secret key MUST be set via the CONDUIT_SECRET_KEY environment variable.
+      secret-key: "${CONDUIT_SECRET_KEY}"
 
 logging:
   level:

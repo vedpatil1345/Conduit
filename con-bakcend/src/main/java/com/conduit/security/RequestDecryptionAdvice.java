@@ -31,60 +31,50 @@ public class RequestDecryptionAdvice extends RequestBodyAdviceAdapter {
 
     @Override
     public boolean supports(@NonNull MethodParameter methodParameter, @NonNull Type targetType, @NonNull Class<? extends HttpMessageConverter<?>> converterType) {
-        // Only run if encryption is enabled globally
         return encryptionConfig.isEnabled();
     }
 
     @Override
     @NonNull
     public HttpInputMessage beforeBodyRead(@NonNull HttpInputMessage inputMessage, @NonNull MethodParameter parameter, @NonNull Type targetType, @NonNull Class<? extends HttpMessageConverter<?>> converterType) throws IOException {
-        // We know we must read {"data": "..."}
-        // First read the entire incoming stream
         byte[] bodyBytes = inputMessage.getBody().readAllBytes();
-        
-        // If empty, just return it
+
+        // Empty bodies are allowed
         if (bodyBytes.length == 0) {
             return inputMessage;
         }
 
         String bodyString = new String(bodyBytes, StandardCharsets.UTF_8);
 
-        // Does it look like the wrapper?
-        if (bodyString.trim().startsWith("{") && bodyString.contains("\"data\"")) {
-            try {
-                EncryptedPayload payload = objectMapper.readValue(bodyString, EncryptedPayload.class);
-                if (payload.getData() != null) {
-                    // Decrypt to raw JSON string
-                    String decryptedJson = encryptionService.decrypt(payload.getData());
-                    // Replace the input stream with the decrypted JSON
-                    byte[] decryptedBytes = decryptedJson.getBytes(StandardCharsets.UTF_8);
-                    
-                    return new HttpInputMessage() {
-                        @Override
-                        @NonNull
-                        public InputStream getBody() {
-                            return new ByteArrayInputStream(decryptedBytes);
-                        }
-
-                        @Override
-                        @NonNull
-                        public HttpHeaders getHeaders() {
-                            return inputMessage.getHeaders();
-                        }
-                    };
-                }
-            } catch (Exception e) {
-                // If it fails to parse as EncryptedPayload or fails to decrypt, log and fallback to original
-                System.err.println("Warning: Failed to decrypt request body, falling back to original bytes. " + e.getMessage());
-            }
+        // Encryption is REQUIRED
+        if (!bodyString.trim().startsWith("{") || !bodyString.contains("\"data\"")) {
+            throw new IOException("Encryption required: request body must be wrapped in an encrypted {\"data\":\"...\"} envelope.");
         }
 
-        // Fallback for requests that might not be encrypted (e.g. testing manually without flag)
+        EncryptedPayload payload;
+        try {
+            payload = objectMapper.readValue(bodyString, EncryptedPayload.class);
+        } catch (Exception e) {
+            throw new IOException("Encryption required: failed to parse encrypted envelope.", e);
+        }
+
+        if (payload.getData() == null || payload.getData().isBlank()) {
+            throw new IOException("Encryption required: 'data' field is missing or empty.");
+        }
+
+        String decryptedJson;
+        try {
+            decryptedJson = encryptionService.decrypt(payload.getData());
+        } catch (Exception e) {
+            throw new IOException("Encryption required: failed to decrypt request body.", e);
+        }
+
+        byte[] decryptedBytes = decryptedJson.getBytes(StandardCharsets.UTF_8);
         return new HttpInputMessage() {
             @Override
             @NonNull
             public InputStream getBody() {
-                return new ByteArrayInputStream(bodyBytes);
+                return new ByteArrayInputStream(decryptedBytes);
             }
 
             @Override

@@ -159,7 +159,15 @@ public class JsonFileStorageService implements StorageService {
     }
 
     private Path resolvePath(String path) {
-        return Paths.get(properties.getDataDir(), "data", path);
+        Path dataRoot = Paths.get(properties.getDataDir(), "data").toAbsolutePath().normalize();
+        Path resolved = dataRoot.resolve(path).normalize();
+
+        // Guard against path traversal
+        if (!resolved.startsWith(dataRoot)) {
+            throw new RuntimeException("Security violation: path traversal attempt detected for path: " + path);
+        }
+
+        return resolved;
     }
 
     private boolean isEncryptedPath(Path path) {
