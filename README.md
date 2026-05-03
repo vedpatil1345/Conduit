@@ -1,96 +1,110 @@
-# Conduit
+# 🚀 Conduit
 
-A self-hosted CI/CD pipeline visualizer and dashboard.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Java Version](https://img.shields.io/badge/Java-21-blue.svg)](https://openjdk.org/projects/jdk/21/)
+[![Node Version](https://img.shields.io/badge/Node-20%2B-green.svg)](https://nodejs.org/)
+[![Version](https://img.shields.io/badge/Version-1.2.0-orange.svg)](https://github.com/vedpatil1345/Conduit)
 
-## Installation
+**Conduit** is an enterprise-grade CI/CD visibility platform designed for high-security environments. It provides a centralized, real-time dashboard for monitoring complex pipeline infrastructures while maintaining a zero-trust security model.
 
-### Linux (One-Liner)
+---
 
-The easiest way to install Conduit on Linux is via our automated script. This will clone the repository, check for dependencies, prompt you for ports, and build everything for you. **After installation, the source code is automatically removed to keep your system clean.**
+## 🛡️ Security Architecture
+
+Conduit is engineered with a **Security-First** philosophy, ensuring your pipeline metadata and integration secrets remain compromised.
+
+*   **AES-256 Data Transit**: Every request and response between the frontend and backend is encrypted using AES-256-CBC, preventing man-in-the-middle attacks even on internal networks.
+*   **Granular RBAC**: A robust Role-Based Access Control system enforces strict boundaries between `ADMIN`, `MANAGER`, `DEVELOPER`, and `VIEWER` personas.
+*   **Encrypted Data Residency**: All persistent data (pipelines, users, runs) is stored in the local `~/.conduit/data` directory using AES-256 encrypted JSON files—no external database required.
+*   **Advanced Authentication**: Leverages JWT (RS256) for session management and BCrypt for password hashing with enforced complexity policies.
+
+---
+
+## ✨ Features at a Glance
+
+*   **Live Stream Visualization**: Real-time updates on build progress and deployment status.
+*   **Cross-Platform Deployments**: Native support for Linux service integration and Windows standalone executables.
+*   **Zero-Database Footprint**: Self-contained storage logic makes Conduit extremely easy to migrate and back up.
+*   **Responsive UI**: A premium, mobile-friendly dashboard built with Next.js 15 and TailwindCSS.
+
+---
+
+## 🚀 Deployment Options
+
+### 🐧 1. Linux Production Script (Recommended)
+Best for dedicated Linux servers or VPS environments.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/vedpatil1345/Conduit/V1/install.sh | bash
+# 1. Download the production installer
+curl -fsSL -O https://raw.githubusercontent.com/vedpatil1345/Conduit/V1/install.sh
+
+# 2. Execute the installer
+bash install.sh
 ```
 
-### Manual Installation (Linux)
+> [!IMPORTANT]
+> **Production Note**: The installer builds optimized production artifacts into a `dist/` directory and removes the source code to maintain a clean, secure environment.
 
-If you have already cloned the repository, you can run the installer locally:
+### 🐳 2. Containerized Deployment (Docker)
+Ideal for orchestrated environments or rapid scaling.
 
 ```bash
-chmod +x install.sh
-./install.sh
+# Launch the full stack in detached mode
+docker-compose up -d
 ```
 
-**Features of the Installer:**
-- **Custom Ports:** Choose your preferred backend and frontend ports.
-- **Auto-Cleanup:** Moves artifacts to a `dist/` folder and deletes source directories to save space.
-- **Startup Support:** Optionally adds Conduit to your system's startup apps via a `systemd` user service.
+### 🪟 3. Windows Standalone Executable
+For offline or air-gapped environments, you can package Conduit into a single `.exe` file.
 
-Once installed, you can start the application manually using:
-```bash
-./start.sh
-```
+1.  **Build Core Artifacts**:
+    *   Backend: `./mvnw clean package`
+    *   Frontend: `pnpm install && pnpm run build`
+2.  **Package with PyInstaller**:
+    ```powershell
+    python -m PyInstaller --onefile --windowed --name "Conduit" `
+      --add-data "con-frontend/.next;frontend/.next" `
+      --add-data "con-frontend/package.json;frontend" `
+      --add-data "con-frontend/public;frontend/public" `
+      --add-data "con-bakcend/target/*.jar;backend" `
+      setup.py
+    ```
 
-**Prerequisites:**
-- Java 17 or higher
-- Node.js 20 or higher
-- `pnpm` (will be installed automatically if missing)
+---
 
-## Getting Started
+## 🏁 Quick Start
 
-When you start the Conduit backend for the very first time, it automatically initializes your data directory (`~/.conduit/`) and creates a default administrator account.
+After installation, Conduit will initialize your secure environment. Use the following default credentials for the initial setup:
 
-**Default Login Credentials:**
+| Field | Initial Value |
+|---|---|
+| **Username** | `admin` |
+| **Password** | `Admin@123` |
+| **Data Directory** | `~/.conduit/` |
 
-- **Username:** `admin`
-- **Password:** `admin`
+*Immediately upon login, navigate to **Settings** to rotate your administrative credentials.*
 
-### Post-Installation Setup
+---
 
-1. Log in with the default credentials above.
-2. Go to **Settings** and immediately change your password.
-3. Go to **Team** to create accounts for your colleagues, assigning them roles like `MANAGER`, `DEVELOPER`, or `VIEWER`.
+## 🏗️ Technical Specifications
 
-## Building the Windows Installer (`.exe`)
+| Component | Technology |
+|---|---|
+| **Backend Framework** | Spring Boot 3.4 (Java 21) |
+| **Frontend Framework** | Next.js 15 (TypeScript) |
+| **Styling** | Vanilla CSS + TailwindCSS |
+| **Identity Management** | Spring Security + JWT |
+| **Encryption Standard** | AES-256-CBC (PKCS5Padding) |
 
-To package both the Frontend and Backend into a single, offline-capable Windows installer, follow these steps:
+---
 
-### 1. Build the Backend (Java)
+## 🤝 Contributing
 
-Navigate to the `con-bakcend` directory and compile the `.jar` file:
+We welcome contributions from the community. For major changes, please open an issue first to discuss what you would like to change. 
 
-```powershell
-cd con-bakcend
-.\mvnw clean package -DskipTests
-cd ..
-```
+Please ensure you follow the security guidelines when submitting PRs related to the encryption or authentication layers.
 
-### 2. Build the Frontend (Next.js)
+---
 
-Navigate to the `con-frontend` directory and create a production build:
+## 📄 License
 
-```powershell
-cd con-frontend
-pnpm install
-pnpm run build
-cd ..
-```
-
-### 3. Package the Executable (PyInstaller)
-
-Make sure you have PyInstaller installed (`pip install pyinstaller`).
-
-> [!WARNING]
-> If you have `pnpm dev` running, **stop it** before proceeding! Otherwise, PyInstaller will hit a `PermissionError` trying to read `.next/dev/lock`.
-
-Run the following command from the root project directory to create the `ConduitWindowsInstaller.exe`:
-
-```powershell
-pip install PyInstaller
-python -m PyInstaller --onefile --windowed --name "ConduitWindowsInstaller" --add-data "con-frontend/.next;frontend/.next" --add-data "con-frontend/package.json;frontend" --add-data "con-frontend/public;frontend/public" --add-data "con-bakcend/target/*.jar;backend" setup.py
-```
-
-### 4. Locate your Installer
-
-Once finished, your new standalone executable will be located in the `dist\` folder:
-`dist\ConduitWindowsInstaller.exe`
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
