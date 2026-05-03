@@ -2,7 +2,6 @@ version: '3.8'
 
 services:
   conduit-backend:
-    image: registry.vedpatil.in/conduit-backend:latest
     build:
       context: ./con-bakcend
       dockerfile: Dockerfile
@@ -14,7 +13,6 @@ services:
       - conduit-net
 
   conduit-frontend:
-    image: registry.vedpatil.in/conduit-frontend:latest
     build:
       context: ./con-frontend
       dockerfile: Dockerfile

@@ -11,7 +11,9 @@ export interface EncryptedPayload {
  * The backend Spring layer will expect Base64(IV + CipherText).
  */
 export function encryptPayload(data: unknown): string {
-  if (!SECRET_KEY) return JSON.stringify(data);
+  if (!SECRET_KEY) {
+    throw new Error("Encryption is enabled but SECRET_KEY is missing. Check your .env.local file.");
+  }
   const jsonStr = JSON.stringify(data);
   
   // Ensure the key is exactly 32 bytes (256-bit)
@@ -33,7 +35,9 @@ export function encryptPayload(data: unknown): string {
  * Extracts the 16-byte IV from the front, then decrypts the remainder.
  */
 export function decryptPayload(base64Str: string): unknown {
-  if (!SECRET_KEY) return JSON.parse(base64Str);
+  if (!SECRET_KEY) {
+    throw new Error("Decryption is enabled but SECRET_KEY is missing. Check your .env.local file.");
+  }
   
   const keyHex = CryptoJS.enc.Utf8.parse(SECRET_KEY.padEnd(32, '0').substring(0, 32));
   const combined = CryptoJS.enc.Base64.parse(base64Str);

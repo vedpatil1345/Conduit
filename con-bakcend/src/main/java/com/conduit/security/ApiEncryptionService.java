@@ -22,7 +22,13 @@ public class ApiEncryptionService {
 
     private byte[] getKey() {
         String key = config.getSecretKey();
-        if (key == null) key = "";
+        if (key == null || key.isEmpty() || key.equals("${CONDUIT_SECRET_KEY}")) {
+            System.err.println("[Encryption] WARNING: CONDUIT_SECRET_KEY is not set or invalid! Using empty fallback.");
+            key = "";
+        } else {
+            System.out.println("[Encryption] Using secret key of length: " + key.length());
+        }
+        
         StringBuilder paddedKey = new StringBuilder(key);
         while (paddedKey.length() < 32) {
             paddedKey.append("0");

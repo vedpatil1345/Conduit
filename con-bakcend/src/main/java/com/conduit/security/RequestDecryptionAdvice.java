@@ -48,6 +48,7 @@ public class RequestDecryptionAdvice extends RequestBodyAdviceAdapter {
 
         // Encryption is REQUIRED
         if (!bodyString.trim().startsWith("{") || !bodyString.contains("\"data\"")) {
+            System.err.println("[Encryption Error] Request body is not wrapped in a JSON 'data' envelope.");
             throw new IOException("Encryption required: request body must be wrapped in an encrypted {\"data\":\"...\"} envelope.");
         }
 
@@ -55,10 +56,12 @@ public class RequestDecryptionAdvice extends RequestBodyAdviceAdapter {
         try {
             payload = objectMapper.readValue(bodyString, EncryptedPayload.class);
         } catch (Exception e) {
+            System.err.println("[Encryption Error] Failed to parse JSON envelope: " + e.getMessage());
             throw new IOException("Encryption required: failed to parse encrypted envelope.", e);
         }
 
         if (payload.getData() == null || payload.getData().isBlank()) {
+            System.err.println("[Encryption Error] 'data' field is missing or blank.");
             throw new IOException("Encryption required: 'data' field is missing or empty.");
         }
 
@@ -66,6 +69,7 @@ public class RequestDecryptionAdvice extends RequestBodyAdviceAdapter {
         try {
             decryptedJson = encryptionService.decrypt(payload.getData());
         } catch (Exception e) {
+            System.err.println("[Encryption Error] Decryption failed. Possible key mismatch or corrupted payload. Error: " + e.getMessage());
             throw new IOException("Encryption required: failed to decrypt request body.", e);
         }
 

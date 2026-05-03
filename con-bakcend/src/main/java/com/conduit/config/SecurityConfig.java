@@ -64,4 +64,15 @@ public class SecurityConfig {
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
+
+    /**
+     * Providing a UserDetailsService bean suppresses the default "generated security password" message.
+     * Since we use custom JWT auth, we don't need the default Spring user.
+     */
+    @Bean
+    public org.springframework.security.core.userdetails.UserDetailsService userDetailsService() {
+        return username -> {
+            throw new org.springframework.security.core.userdetails.UsernameNotFoundException("Use JWT authentication instead");
+        };
+    }
 }
