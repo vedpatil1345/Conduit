@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { LoginSchema, type LoginFormValues } from "@/common/validation/auth";
 import { useAuthStore } from "@/store/index";
 
@@ -77,10 +78,9 @@ export default function LoginPage() {
             </div>
             
             <div className="grid gap-2">
-              <Input
+              <PasswordInput
                 id="password"
                 placeholder="Password"
-                type="password"
                 autoComplete="current-password"
                 {...register("password")}
                 className="h-14 bg-white/20 backdrop-blur-sm dark:bg-dark-walnut-100/50 border border-camel-700/30 dark:border-white/10 px-5 rounded-xl focus-visible:ring-saddle-brown-500 dark:focus-visible:ring-khaki-beige-600 font-medium text-lg text-foreground dark:text-khaki-beige-800 placeholder:text-saddle-brown-300/60 dark:placeholder:text-khaki-beige-600/50"

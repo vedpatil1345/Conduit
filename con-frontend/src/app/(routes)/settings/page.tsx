@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { useAuthStore } from "@/store/index";
-import { changePassword, ROLE_COLORS, ROLE_DESCRIPTIONS } from "@/lib/users";
+import { changePassword, ROLE_COLORS, ROLE_DESCRIPTIONS, validatePassword } from "@/lib/users";
 import { Settings, User, Lock, Check, AlertTriangle, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 
 export default function SettingsPage() {
   const user = useAuthStore((s) => s.user);
@@ -78,6 +79,15 @@ function ChangePasswordForm() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  const passwordChecks = [
+    { label: "8+ characters", met: newPassword.length >= 8 },
+    { label: "One uppercase letter", met: /[A-Z]/.test(newPassword) },
+    { label: "One number", met: /\d/.test(newPassword) },
+    { label: "One special character", met: /[!@#$%^&*()\-=_+[\]{}|;:,.<>?]/.test(newPassword) },
+  ];
+
+  const allMet = passwordChecks.every(c => c.met);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -88,8 +98,8 @@ function ChangePasswordForm() {
       return;
     }
 
-    if (newPassword.length < 4) {
-      setError("New password must be at least 4 characters");
+    if (!allMet) {
+      setError("Password does not meet requirements");
       return;
     }
 
@@ -127,8 +137,7 @@ function ChangePasswordForm() {
 
       <div className="flex flex-col gap-2">
         <label className="text-sm font-medium text-foreground">Current Password</label>
-        <Input
-          type="password"
+        <PasswordInput
           value={currentPassword}
           onChange={(e) => setCurrentPassword(e.target.value)}
           placeholder="Enter current password"
@@ -138,19 +147,31 @@ function ChangePasswordForm() {
 
       <div className="flex flex-col gap-2">
         <label className="text-sm font-medium text-foreground">New Password</label>
-        <Input
-          type="password"
+        <PasswordInput
           value={newPassword}
           onChange={(e) => setNewPassword(e.target.value)}
-          placeholder="Minimum 4 characters"
+          placeholder="Enter new password"
           className="h-10"
         />
+        
+        {/* Real-time validation list */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 mt-1 p-3 rounded-lg bg-muted/30 border border-muted/50">
+          {passwordChecks.map((check, idx) => (
+            <div key={idx} className="flex items-center gap-2">
+              <div className={`flex items-center justify-center h-4 w-4 rounded-full border transition-colors ${check.met ? "bg-green-500 border-green-500" : "border-muted-foreground/30"}`}>
+                {check.met && <Check className="h-2.5 w-2.5 text-white" />}
+              </div>
+              <span className={`text-[11px] font-medium transition-colors ${check.met ? "text-green-600 dark:text-green-400" : "text-muted-foreground"}`}>
+                {check.label}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="flex flex-col gap-2">
         <label className="text-sm font-medium text-foreground">Confirm New Password</label>
-        <Input
-          type="password"
+        <PasswordInput
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
           placeholder="Re-enter new password"
@@ -158,7 +179,7 @@ function ChangePasswordForm() {
         />
       </div>
 
-      <Button type="submit" disabled={isLoading} className="mt-2 w-fit gap-2">
+      <Button type="submit" disabled={isLoading || (newPassword.length > 0 && !allMet)} className="mt-2 w-fit gap-2">
         <Lock className="h-4 w-4" />
         {isLoading ? "Changing..." : "Change Password"}
       </Button>

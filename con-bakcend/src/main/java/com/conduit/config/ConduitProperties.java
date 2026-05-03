@@ -24,6 +24,9 @@ public class ConduitProperties {
      */
     private String secretKey;
 
+    /** List of allowed CORS origins. Defaults to http://localhost:3000 in dev. */
+    private java.util.List<String> allowedOrigins = java.util.Collections.singletonList("http://localhost:3000");
+
     // --- Getters & Setters ---
 
     public String getMode() {
@@ -69,6 +72,9 @@ public class ConduitProperties {
 
     public String getJwtPublicKey() { return jwtPublicKey; }
     public void setJwtPublicKey(String jwtPublicKey) { this.jwtPublicKey = jwtPublicKey; }
+
+    public java.util.List<String> getAllowedOrigins() { return allowedOrigins; }
+    public void setAllowedOrigins(java.util.List<String> allowedOrigins) { this.allowedOrigins = allowedOrigins; }
 
     public boolean isLocalMode() {
         return "local".equalsIgnoreCase(mode);

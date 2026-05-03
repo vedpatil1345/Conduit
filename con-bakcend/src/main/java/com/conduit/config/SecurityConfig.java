@@ -24,9 +24,11 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
+    private final ConduitProperties properties;
 
-    public SecurityConfig(JwtAuthFilter jwtAuthFilter) {
+    public SecurityConfig(JwtAuthFilter jwtAuthFilter, ConduitProperties properties) {
         this.jwtAuthFilter = jwtAuthFilter;
+        this.properties = properties;
     }
 
     @Bean
@@ -49,7 +51,15 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(List.of("*"));
+        
+        // Use allowed origins from configuration
+        List<String> origins = properties.getAllowedOrigins();
+        if (origins != null && !origins.isEmpty()) {
+            config.setAllowedOrigins(origins);
+        } else {
+            config.setAllowedOrigins(List.of("http://localhost:3000"));
+        }
+
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true); // required for HttpOnly cookies

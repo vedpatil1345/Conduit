@@ -13,22 +13,18 @@ public class User {
     private String id;
     private String username;
     private String email;
-    @JsonIgnore
     private String passwordHash;
 
     private Role role;
 
-    @JsonIgnore
     private List<String> apiTokens = new ArrayList<>();
 
-    @JsonIgnore
     /** Revoked refresh token JTIs — checked during refresh. */
     private Set<String> revokedRefreshTokens = new HashSet<>();
 
     /** Number of consecutive failed login attempts. */
     private int failedAttempts;
 
-    @JsonIgnore
     /** Account locked until this instant (null = not locked). */
     private Instant lockedUntil;
 

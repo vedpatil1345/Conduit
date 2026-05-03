@@ -11,6 +11,7 @@ import {
   ROLES,
   ROLE_DESCRIPTIONS,
   ROLE_COLORS,
+  validatePassword,
 } from "@/lib/users";
 import {
   UserPlus,
@@ -24,6 +25,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import {
   Dialog,
   DialogContent,
@@ -310,10 +312,24 @@ function CreateUserForm({ onCreated }: { onCreated: () => void }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const passwordChecks = [
+    { label: "8+ characters", met: password.length >= 8 },
+    { label: "One uppercase letter", met: /[A-Z]/.test(password) },
+    { label: "One number", met: /\d/.test(password) },
+    { label: "One special character", met: /[!@#$%^&*()\-=_+[\]{}|;:,.<>?]/.test(password) },
+  ];
+
+  const allMet = passwordChecks.every(c => c.met);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username || !password) {
       setError("Username and password are required");
+      return;
+    }
+
+    if (!allMet) {
+      setError("Password does not meet requirements");
       return;
     }
 
@@ -360,13 +376,26 @@ function CreateUserForm({ onCreated }: { onCreated: () => void }) {
 
       <div className="grid gap-2">
         <label className="text-sm font-medium text-foreground">Password *</label>
-        <Input
-          type="password"
+        <PasswordInput
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="Minimum 4 characters"
+          placeholder="Enter password"
           className="h-10"
         />
+        
+        {/* Real-time validation list */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 mt-1 p-3 rounded-lg bg-muted/30 border border-muted/50">
+          {passwordChecks.map((check, idx) => (
+            <div key={idx} className="flex items-center gap-2">
+              <div className={`flex items-center justify-center h-4 w-4 rounded-full border transition-colors ${check.met ? "bg-green-500 border-green-500" : "border-muted-foreground/30"}`}>
+                {check.met && <Check className="h-2.5 w-2.5 text-white" />}
+              </div>
+              <span className={`text-[11px] font-medium transition-colors ${check.met ? "text-green-600 dark:text-green-400" : "text-muted-foreground"}`}>
+                {check.label}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="grid gap-2">
@@ -388,7 +417,7 @@ function CreateUserForm({ onCreated }: { onCreated: () => void }) {
         </Select>
       </div>
 
-      <Button type="submit" disabled={isLoading} className="mt-2 gap-2">
+      <Button type="submit" disabled={isLoading || (password.length > 0 && !allMet)} className="mt-2 gap-2">
         <UserPlus className="h-4 w-4" />
         {isLoading ? "Creating..." : "Create Account"}
       </Button>

@@ -42,7 +42,7 @@ public class AuthController {
             AuthResponse body = new AuthResponse(
                     result.getAccessToken(),
                     jwtService.getAccessTokenExpiresIn(),
-                    AuthResponse.sanitizeUser(result.getUser()));
+                    new UserDTO(result.getUser()));
 
             return ResponseEntity.ok(body);
         } catch (AuthService.AuthException e) {
@@ -67,7 +67,7 @@ public class AuthController {
             AuthResponse body = new AuthResponse(
                     result.getAccessToken(),
                     jwtService.getAccessTokenExpiresIn(),
-                    AuthResponse.sanitizeUser(result.getUser()));
+                    new UserDTO(result.getUser()));
 
             return ResponseEntity.ok(body);
         } catch (AuthService.AuthException e) {

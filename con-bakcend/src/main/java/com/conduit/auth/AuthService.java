@@ -153,7 +153,8 @@ public class AuthService {
     public void ensureDefaultAdmin() {
         List<User> users = new ArrayList<>(storageService.readList(USERS_PATH, User.class));
         if (users.isEmpty()) {
-            String hashedPassword = passwordEncoder.encode("admin");
+            // Defaulting to 'Admin@123' to meet our new complexity policy
+            String hashedPassword = passwordEncoder.encode("Admin@123");
             User admin = new User("admin", "admin@localhost", hashedPassword, Role.ADMIN);
             users.add(admin);
             storageService.write(USERS_PATH, users);
@@ -175,9 +176,7 @@ public class AuthService {
             throw new AuthException("Current password is incorrect");
         }
 
-        if (newPassword.length() < 4) {
-            throw new AuthException("New password must be at least 4 characters");
-        }
+        validatePassword(newPassword);
 
         user.setPasswordHash(passwordEncoder.encode(newPassword));
         user.setUpdatedAt(Instant.now());
@@ -196,6 +195,8 @@ public class AuthService {
         if (exists) {
             throw new AuthException("Username '" + username + "' already exists");
         }
+
+        validatePassword(password);
 
         String hashedPassword = passwordEncoder.encode(password);
         User newUser = new User(username, email, hashedPassword, role);
@@ -260,6 +261,27 @@ public class AuthService {
 
         user.setUpdatedAt(Instant.now());
         storageService.write(USERS_PATH, users);
+    }
+
+    private void validatePassword(String password) {
+        if (password == null || password.length() < 8) {
+            throw new AuthException("Password must be at least 8 characters long");
+        }
+        
+        boolean hasUppercase = false;
+        boolean hasDigit = false;
+        boolean hasSpecial = false;
+        String specialChars = "!@#$%^&*()-_=+[]{}|;:,.<>?";
+
+        for (char c : password.toCharArray()) {
+            if (Character.isUpperCase(c)) hasUppercase = true;
+            else if (Character.isDigit(c)) hasDigit = true;
+            else if (specialChars.indexOf(c) != -1) hasSpecial = true;
+        }
+
+        if (!hasUppercase) throw new AuthException("Password must contain at least one uppercase letter");
+        if (!hasDigit) throw new AuthException("Password must contain at least one number");
+        if (!hasSpecial) throw new AuthException("Password must contain at least one special character (!@#$%^&* etc.)");
     }
 
     // --- Inner classes ---

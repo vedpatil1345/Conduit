@@ -29,7 +29,7 @@ public class UserController {
     public ResponseEntity<?> getCurrentUser(Authentication auth) {
         String userId = (String) auth.getPrincipal();
         return authService.findById(userId)
-                .map(user -> ResponseEntity.ok(AuthResponse.sanitizeUser(user)))
+                .map(user -> ResponseEntity.ok(new UserDTO(user)))
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -64,11 +64,11 @@ public class UserController {
         }
 
         List<User> users = authService.listUsers();
-        List<Map<String, Object>> sanitized = users.stream()
-                .map(AuthResponse::sanitizeUser)
+        List<UserDTO> dtoList = users.stream()
+                .map(UserDTO::new)
                 .toList();
 
-        return ResponseEntity.ok(sanitized);
+        return ResponseEntity.ok(dtoList);
     }
 
     /**
@@ -92,7 +92,7 @@ public class UserController {
         try {
             Role role = Role.valueOf(roleStr.toUpperCase());
             User created = authService.createUser(username, email != null ? email : "", password, role);
-            return ResponseEntity.ok(AuthResponse.sanitizeUser(created));
+            return ResponseEntity.ok(new UserDTO(created));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", "Invalid role: " + roleStr));
         } catch (AuthService.AuthException e) {
@@ -117,7 +117,7 @@ public class UserController {
         try {
             Role role = Role.valueOf(roleStr.toUpperCase());
             User updated = authService.updateUserRole(id, role);
-            return ResponseEntity.ok(AuthResponse.sanitizeUser(updated));
+            return ResponseEntity.ok(new UserDTO(updated));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", "Invalid role: " + roleStr));
         } catch (AuthService.AuthException e) {

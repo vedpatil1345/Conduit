@@ -32,6 +32,11 @@ export async function getMe(): Promise<UserProfile> {
 
 /** Change own password */
 export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
+  try {
+    validatePassword(newPassword);
+  } catch (err) {
+    throw err;
+  }
   await apiFetch("/api/users/me/password", {
     method: "PUT",
     body: { currentPassword, newPassword },
@@ -69,4 +74,22 @@ export async function deleteUser(userId: string): Promise<void> {
   await apiFetch(`/api/users/${userId}`, {
     method: "DELETE",
   });
+}
+
+/** 
+ * Client-side password validation (matches backend policy)
+ * @throws Error with descriptive message if invalid
+ */
+export function validatePassword(password: string): void {
+  if (!password || password.length < 8) {
+    throw new Error("Password must be at least 8 characters long");
+  }
+
+  const hasUppercase = /[A-Z]/.test(password);
+  const hasDigit = /\d/.test(password);
+  const hasSpecial = /[!@#$%^&*()\-=_+[\]{}|;:,.<>?]/.test(password);
+
+  if (!hasUppercase) throw new Error("Password must contain at least one uppercase letter");
+  if (!hasDigit) throw new Error("Password must contain at least one number");
+  if (!hasSpecial) throw new Error("Password must contain at least one special character (!@#$%^&* etc.)");
 }
