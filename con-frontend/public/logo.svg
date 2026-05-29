@@ -1,0 +1,9 @@
+<svg width="400" height="150" viewBox="0 0 400 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M40 80L75 50L110 80L145 50" stroke="#4A5568" stroke-width="12" stroke-linecap="square" stroke-linejoin="square"/>
+  
+  <path d="M40 105L75 75L110 105L145 75" stroke="#2C7A7B" stroke-width="12" stroke-linecap="square" stroke-linejoin="square"/>
+
+  <text x="170" y="85" fill="#4A5568" style="font-family: Arial, sans-serif; font-weight: bold; font-size: 42px; letter-spacing: 1px;">CONDUIT</text>
+  
+  <text x="170" y="110" fill="#718096" style="font-family: Arial, sans-serif; font-size: 16px;">Your CI/CD pipeline, visualized</text>
+</svg>

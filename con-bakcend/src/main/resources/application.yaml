@@ -1,0 +1,24 @@
+spring:
+  application:
+    name: conduit
+
+server:
+  port: ${conduit.port:8080}
+
+conduit:
+  mode: local
+  data-dir: "${user.home}/.conduit"
+  port: 8080
+  api:
+    encryption:
+      enabled: true
+      # Secret key MUST be set via the CONDUIT_SECRET_KEY environment variable in production.
+      # Defaulting to a development key if the environment variable is missing.
+      secret-key: "${CONDUIT_SECRET_KEY:conduit-secure-secret-key-123456}"
+    # Allowed CORS origins
+    allowed-origins: "${CONDUIT_ALLOWED_ORIGINS:http://localhost:3000,http://127.0.0.1:3000}"
+
+logging:
+  level:
+    root: INFO
+    com.conduit: INFO
